@@ -1,6 +1,10 @@
 
 # Created by https://www.gitignore.io/api/eclipse,c
 
+# Some Contiki Project specifics
+obj_*/*
+Debug/*
+
 ### C ###
 # Prerequisites
 *.d

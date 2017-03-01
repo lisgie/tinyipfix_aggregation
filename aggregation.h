@@ -1,0 +1,2 @@
+#define DEGREE_OF_AGGREGATION 5
+
