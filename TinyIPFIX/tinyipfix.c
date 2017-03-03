@@ -200,6 +200,7 @@ uint8_t build_msg_header(uint8_t* buf, uint16_t set_id, uint16_t length, uint16_
 
 	//Filling up the template with records
 	for(i = 0; i < NUM_ENTRIES; i++) {
+		printf("%d, ", i);
 
 		element_id = SWITCH_ENDIAN_16(sensor[i].element_id);
 		memcpy(&template_buf[template_tmp_len], &element_id, sizeof(element_id));

@@ -4,6 +4,8 @@
 # Some Contiki Project specifics
 obj_*/*
 Debug/*
+*.openmote-*
+*.bin
 
 ### C ###
 # Prerequisites
