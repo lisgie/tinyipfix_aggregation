@@ -6,6 +6,7 @@ obj_*/*
 Debug/*
 *.openmote-*
 *.bin
+.sky
 
 ### C ###
 # Prerequisites
