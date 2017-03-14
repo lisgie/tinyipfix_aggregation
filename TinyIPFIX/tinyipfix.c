@@ -3,32 +3,12 @@
 //Used for malloc(...)
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #include "tinyipfix.h"
 
 //Corresponds to the hardware used
-#include "../hw_module/openmote.h"
-
-//Depending on config defined in [platform].h define the correct header size
-#ifndef EXTENDED_HEADER_SEQ
-	#define EXTENDED_HEADER_SEQ 0
-#endif
-#ifndef EXTENDED_HEADER_SET_ID
-	#define EXTENDED_HEADER_SET_ID 0
-#endif
-#if EXTENDED_HEADER_SET_ID == 1
-	#if EXTENDED_HEADER_SEQ == 1
-		#define MSG_HEADER_SIZE 5
-	#else
-		#define MSG_HEADER_SIZE 4
-	#endif
-#else
-	#if EXTENDED_HEADER_SEQ == 1
-		#define MSG_HEADER_SIZE 4
-	#else
-		#define MSG_HEADER_SIZE 3
-	#endif
-#endif
+#include "../hw_module/sky.h"
 
 //This translation functions are needed for switching endianness before writing to byte buffer
 #define SWITCH_ENDIAN_16(n) (uint16_t)((((uint16_t) (n)) << 8) | (((uint16_t) (n)) >> 8))
@@ -39,7 +19,7 @@
 uint8_t build_msg_header(uint8_t *buf, uint16_t set_id, uint16_t length, uint16_t seq_num);
 
 //The whole template can be built statically, no distinction between header/payload necessary
-uint8_t build_template(void);
+uint8_t build_template(uint8_t deg_aggr);
 
 //Updates the data records
 uint8_t build_data_payload(void);
@@ -47,11 +27,14 @@ uint8_t build_data_payload(void);
 //for optimization reasons. Sequence number needs to be updated in every msg, though
 uint8_t build_data_header(void);
 
-uint16_t calc_template_size();
+uint16_t calc_template_size(uint8_t);
 uint16_t calc_data_size();
 
 //TinyIPFIX messages can only be used, if the system has been initialized
 uint8_t is_initialized = 0;
+
+struct tinyipfix_packet packet;
+
 
 uint8_t *template_buf;
 uint8_t *data_buf;
@@ -62,40 +45,63 @@ uint16_t data_size;
 //Defines field ID, length, enterprise num and function pointer
 struct template_rec *sensor;
 
-uint8_t initialize_tinyipfix(void) {
+struct tinyipfix_packet *split_packet(const uint8_t* data) {
+
+	uint8_t i;
+
+	for(i = 0; i < MSG_HEADER_SIZE; i++) {
+		packet.header[i] = data[i];
+	}
+
+	//compiler warning here, maybe better to copy because data is const
+	packet.payload = data+MSG_HEADER_SIZE;
+
+	return &packet;
+}
+
+uint8_t initialize_tinyipfix(uint8_t deg_aggr) {
 
 	sensor = init_template();
 
-	template_size = calc_template_size();
+	template_size = calc_template_size(deg_aggr);
 	template_buf = (uint8_t*)malloc(template_size*sizeof(uint8_t));
-	data_size = calc_data_size();
-	data_buf = (uint8_t*)malloc(data_size*sizeof(uint8_t));
 
-	//Everything needs to be properly set up in order to continue, else errorcode
-	if( build_template() == -1 || build_data_header() == -1 )
+	printf("###0x%x, ",template_size);
+	if(build_template(deg_aggr) == -1) {
 		return -1;
+	}
+
+	//not an aggregator, data will be collected
+	if(deg_aggr == 1) {
+		data_size = calc_data_size();
+		data_buf = (uint8_t*)malloc(data_size*sizeof(uint8_t));
+		if(build_data_header() == -1) {
+			return -1;
+		}
+	}
 
 	is_initialized = 1;
 
 	return 0;
 }
 
-uint16_t calc_template_size() {
+uint16_t calc_template_size(uint8_t deg_aggr) {
 
-	uint8_t i;
+	uint8_t i, j;
 	uint16_t template_size = MSG_HEADER_SIZE;
 
 	//Calculate length first to be able to build the message header
-	for(i = 0; i < NUM_ENTRIES; i++) {
-
-		//Check first bit to know if enterprise field is set or not
-		if( ((sensor[i].element_id) | 0x8000) == sensor[i].element_id) {
-			template_size += 4;
+	for(j = 0; j < deg_aggr; j++) {
+		for(i = 0; i < NUM_ENTRIES; i++) {
+			//Check first bit to know if enterprise field is set or not
+			if( ((sensor[i].element_id) | 0x8000) == sensor[i].element_id) {
+				template_size += 4;
+			}
 		}
 	}
 
 	//4 = sizeof(element_id) + sizeof(field_len) = 2 + 2
-	template_size += 4*NUM_ENTRIES;
+	template_size += 4*NUM_ENTRIES*deg_aggr;
 	//Template Set Header
 	template_size += SET_HEADER_SIZE;
 
@@ -171,16 +177,16 @@ uint8_t build_msg_header(uint8_t* buf, uint16_t set_id, uint16_t length, uint16_
 	return 0;
 }
 
- uint8_t build_template(void) {
+ uint8_t build_template(uint8_t deg_aggr) {
 
-	uint8_t i;
+	uint8_t i, j;
 	uint16_t element_id, field_len;
 	uint32_t enterprise_num;
 
 	//In case the template doesn't reference data set 256, ref_set_id points to the right number
 	uint16_t ref_set_id = DATA_SET_ID;
 	//Can be found at [platform].h
-	uint16_t field_count = NUM_ENTRIES;
+	uint16_t field_count = NUM_ENTRIES*deg_aggr;
 
 	//Used to know where we are within our buffer
 	uint16_t template_tmp_len = MSG_HEADER_SIZE;
@@ -199,26 +205,26 @@ uint8_t build_msg_header(uint8_t* buf, uint16_t set_id, uint16_t length, uint16_
 	template_tmp_len += sizeof(field_count);
 
 	//Filling up the template with records
-	for(i = 0; i < NUM_ENTRIES; i++) {
-		printf("%d, ", i);
+	for(j = 0; j < deg_aggr; j++) {
+		for(i = 0; i < NUM_ENTRIES; i++) {
 
-		element_id = SWITCH_ENDIAN_16(sensor[i].element_id);
-		memcpy(&template_buf[template_tmp_len], &element_id, sizeof(element_id));
-		template_tmp_len += sizeof(element_id);
+			element_id = SWITCH_ENDIAN_16(sensor[i].element_id);
+			memcpy(&template_buf[template_tmp_len], &element_id, sizeof(element_id));
+			template_tmp_len += sizeof(element_id);
 
-		field_len = SWITCH_ENDIAN_16(sensor[i].field_len);
-		memcpy(&template_buf[template_tmp_len], &field_len, sizeof(field_len));
-		template_tmp_len += sizeof(field_len);
+			field_len = SWITCH_ENDIAN_16(sensor[i].field_len);
+			memcpy(&template_buf[template_tmp_len], &field_len, sizeof(field_len));
+			template_tmp_len += sizeof(field_len);
 
-		//Check if enterprise bit exists
-		if( ((sensor[i].element_id) | 0x8000) == sensor[i].element_id) {
+			//Check if enterprise bit exists
+			if( ((sensor[i].element_id) | 0x8000) == sensor[i].element_id) {
 
-			enterprise_num = SWITCH_ENDIAN_32(sensor[i].enterprise_num);
-			memcpy(&template_buf[template_tmp_len], &enterprise_num, sizeof(enterprise_num));
-			template_tmp_len += sizeof(enterprise_num);
+				enterprise_num = SWITCH_ENDIAN_32(sensor[i].enterprise_num);
+				memcpy(&template_buf[template_tmp_len], &enterprise_num, sizeof(enterprise_num));
+				template_tmp_len += sizeof(enterprise_num);
+			}
 		}
 	}
-
 	return 0;
 }
 
