@@ -40,6 +40,10 @@
 #include "simple-udp.h"
 #include "servreg-hack.h"
 
+#include "net/uip.h"
+#include "net/uip-ds6.h"
+#include "net/uip-debug.h"
+
 #include "../TinyIPFIX/tinyipfix.h"
 #include "dev/leds.h"
 
