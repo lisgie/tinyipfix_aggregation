@@ -1,6 +1,9 @@
 #ifndef AGGREGATOR_H_
 #define AGGREGATOR_H_
 
+//0 - Message Aggr., 1 - Data Aggr.
+#define AGGREGATION_MODE 1
+
 //Message Aggregation
 #define DEGREE_OF_MSG_AGGREGATION 3
 //---

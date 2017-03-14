@@ -34,12 +34,7 @@
 #include "lib/random.h"
 #include "sys/ctimer.h"
 #include "sys/etimer.h"
-#include "net/ip/uip.h"
-#include "net/ipv6/uip-ds6.h"
-#include "net/ip/uip-debug.h"
 
-#include "simple-udp.h"
-#include "servreg-hack.h"
 
 #include "net/rpl/rpl.h"
 
@@ -53,6 +48,8 @@
 
 #include "dev/leds.h"
 
+#include "comm.h"
+
 #define TEMPLATE_INTERVAL 10
 
 #define UDP_PORT 1234
@@ -63,8 +60,6 @@
 #define SEND_INTERVAL		(10 * CLOCK_SECOND)
 #define SEND_TIME		(random_rand() % (SEND_INTERVAL))
 
-//0 - Message Aggr., 1 - Data Aggr.
-#define AGGREGATION_MODE 1
 
 static struct simple_udp_connection unicast_connection;
 static struct simple_udp_connection border_conn;
@@ -179,54 +174,6 @@ void data_aggregation(const uint8_t *data, uint16_t datalen) {
 }
 
 
-static void
-receiver(struct simple_udp_connection *c,
-         const uip_ipaddr_t *sender_addr,
-         uint16_t sender_port,
-         const uip_ipaddr_t *receiver_addr,
-         uint16_t receiver_port,
-         const uint8_t *data,
-         uint16_t datalen) {
-
-	//we only want data sets and discard template sets
-	uint8_t template_check = data[0];
-	template_check &= 0xfc; //we need to discard the last two bits, 0xfc = 11111100
-	if(template_check == 0x04)
-		return;
-
-	if(AGGREGATION_MODE == 0)
-		message_aggregation(data, datalen);
-	else if(AGGREGATION_MODE == 1)
-		data_aggregation(data, datalen);
-
-	seq_num++;
-	return;
-}
-
-static uip_ipaddr_t *
-set_global_address(void)
-{
-  static uip_ipaddr_t ipaddr;
-  int i;
-  uint8_t state;
-
-  uip_ip6addr(&ipaddr, UIP_DS6_DEFAULT_PREFIX, 0,0,0,0,0,0,0);
-  uip_ds6_set_addr_iid(&ipaddr, &uip_lladdr);
-  uip_ds6_addr_add(&ipaddr, 0, ADDR_AUTOCONF);
-
-  printf("IPv6 addresses: ");
-  for(i = 0; i < UIP_DS6_ADDR_NB; i++) {
-    state = uip_ds6_if.addr_list[i].state;
-    if(uip_ds6_if.addr_list[i].isused &&
-       (state == ADDR_TENTATIVE || state == ADDR_PREFERRED)) {
-      uip_debug_ipaddr_print(&uip_ds6_if.addr_list[i].ipaddr);
-      printf("\n");
-    }
-  }
-
-  return &ipaddr;
-}
-/*---------------------------------------------------------------------------*/
 PROCESS_THREAD(unicast_receiver_process, ev, data)
 {
   uip_ipaddr_t *ipaddr;
@@ -284,17 +231,19 @@ PROCESS_THREAD(unicast_receiver_process, ev, data)
   template_size <<= 8;
   template_size |= template_buf[1];
 
-  uip_ip6addr(&border_router,UIP_DS6_DEFAULT_PREFIX,0,0,0,0,0,0,0);
-  servreg_hack_init();
-  ipaddr = set_global_address();
+  init_networking();
+  servreg();
 
-  servreg_hack_register(SERVICE_ID, ipaddr);
+  //uip_ip6addr(&border_router,UIP_DS6_DEFAULT_PREFIX,0,0,0,0,0,0,0);
+//  servreg_hack_init();
 
-  simple_udp_register(&unicast_connection, UDP_PORT,
+//  servreg_hack_register(SERVICE_ID, ipaddr);
+
+/*  simple_udp_register(&unicast_connection, UDP_PORT,
                       NULL, UDP_PORT, receiver);
 
   simple_udp_register(&border_conn, 40001,
-                      NULL, 40001, NULL);
+                      NULL, 40001, NULL);*/
 
   while(1) {
     PROCESS_WAIT_EVENT();
@@ -304,7 +253,7 @@ PROCESS_THREAD(unicast_receiver_process, ev, data)
 		clock_delay(1000);
 		leds_off(LEDS_RED);
 
-		simple_udp_sendto(&border_conn, template_buf, template_size, &border_router);
+		msg_send(&border_conn, template_buf, template_size, &border_router);
 
 		etimer_reset(&template_timer);
 	}
