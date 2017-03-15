@@ -1,14 +1,4 @@
-//Used for memcpy(...)
-#include <string.h>
-//Used for malloc(...)
-#include <stdlib.h>
-#include <stdint.h>
-#include <stdio.h>
-
 #include "tinyipfix.h"
-
-//Corresponds to the hardware used
-#include "../hw_module/sky.h"
 
 //This translation functions are needed for switching endianness before writing to byte buffer
 #define SWITCH_ENDIAN_16(n) (uint16_t)((((uint16_t) (n)) << 8) | (((uint16_t) (n)) >> 8))

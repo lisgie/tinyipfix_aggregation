@@ -56,7 +56,7 @@
 #define DEGREE_OF_AGGREGATION 1
 
 #define UDP_PORT 1234
-#define SERVICE_ID 190
+#define SERVICE_ID 100
 
 /*---------------------------------------------------------------------------*/
 PROCESS(unicast_sender_process, "Unicast sender example process");

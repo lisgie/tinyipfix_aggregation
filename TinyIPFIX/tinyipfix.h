@@ -3,9 +3,18 @@
 
 #include <stdint.h>
 
+//Corresponds to the hardware used
+#include "../hw_module/sky.h"
+
+//Used for memcpy(...)
+#include <string.h>
+//Used for malloc(...)
+#include <stdlib.h>
+#include <stdint.h>
+#include <stdio.h>
 
 //Length field is 10 bits long
-#define MAX_MSG_SIZE 1023
+#define MAX_MSG_SIZE 512
 
 #define MAX_SET_ID 4095
 #define MAX_SEQ_NUM 65535

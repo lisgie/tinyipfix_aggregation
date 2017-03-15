@@ -52,12 +52,8 @@ static void receiver(struct simple_udp_connection *c,
 	if(template_check == 0x04)
 		return;
 
-	/*if(AGGREGATION_MODE == 0)
-		message_aggregation(data, datalen);
-	else if(AGGREGATION_MODE == 1)
-		data_aggregation(data, datalen);*/
+	calc_aggr_payload(data, datalen);
 
-	//seq_num++;
 	return;
 }
 
@@ -65,8 +61,6 @@ int msg_send(int comm_mode, const void *data, uint16_t datalen) {
 
 	uint8_t i;
 
-	j++;
-	printf("0x%x, ", j);
 	printf("\n#\n");
 	  	  for(i = 0; i < datalen; i++) {
 	  		  printf("0x%x, ", ((uint8_t*)data)[i]);
