@@ -5,15 +5,15 @@
 #define AGGREGATION_MODE 1
 
 //Message Aggregation
-#define DEGREE_OF_MSG_AGGREGATION 3
+#define DEGREE_OF_MSG_AGGREGATION 2
 //---
 
 //Data Aggregation
-#define DEGREE_OF_DATA_AGGREGATION 5
+#define DEGREE_OF_DATA_AGGREGATION 3
 //because of HUMID_POS we need to include the hw_module header, should be somehow changed
-#define SENSOR TEMP_POS
+#define SENSOR HUMID_POS
 //AVG - 0, MAX - 1, MIN - 2
-#define AGGR_FUNC 1
+#define AGGR_FUNC 2
 //---
 
 //can be inlined

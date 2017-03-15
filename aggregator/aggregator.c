@@ -52,17 +52,14 @@
 
 #define TEMPLATE_INTERVAL 10
 
-#define UDP_PORT 1234
-#define SERVICE_ID 190
-
 #define MAX_TEMPLATE_SIZE 512
 
 #define SEND_INTERVAL		(10 * CLOCK_SECOND)
 #define SEND_TIME		(random_rand() % (SEND_INTERVAL))
 
 
-static struct simple_udp_connection unicast_connection;
-static struct simple_udp_connection border_conn;
+//static struct simple_udp_connection unicast_connection;
+//static struct simple_udp_connection border_conn;
 
 uint32_t data_aggr_state;
 uint16_t template_size;
@@ -75,6 +72,15 @@ uint8_t template_buf[MAX_TEMPLATE_SIZE];
 uint16_t extraction_within_payload = 0, target_field_len;
 
 uint8_t count = 0;
+
+
+uint8_t payload[] = {
+		0x08,0x14,0x03,0x19,0x9a,
+		0x03,0x22,0x09,0xd7,0x08,
+		0xb3,0x0d,0x55,0x00,0x00,
+		0x00,0x0f,0x71,0x8a,0x00
+};
+
 
 //at the end we need to fill the header, so start not at the beginning to avoid copying memory
 uint16_t insidebuf_count = MSG_HEADER_SIZE;
@@ -99,7 +105,7 @@ void message_aggregation(const uint8_t *data, uint16_t datalen) {
 	if(count == DEGREE_OF_MSG_AGGREGATION) {
 		//construct new header
 		build_msg_header(buf,DATA_SET_ID,insidebuf_count,seq_num);
-		simple_udp_sendto(&border_conn,buf,insidebuf_count,&border_router);
+		msg_send(BORDER_COMM,buf,insidebuf_count);
 		leds_on(LEDS_YELLOW);
 		clock_delay(1000);
 		leds_off(LEDS_YELLOW);
@@ -162,21 +168,16 @@ void data_aggregation(const uint8_t *data, uint16_t datalen) {
 			buf[MSG_HEADER_SIZE+i] = tmp_8;
 		}
 
-		printf("\n\n");
-		for(i = 0; i < buf[1]; i++) {
-			printf("0x%x, ", buf[i]);
-		}
-		printf("\n\n");
-		simple_udp_sendto(&border_conn,buf,buf[1],&border_router);
+		msg_send(BORDER_COMM,buf,buf[1]);
 		data_aggr_state = 0;
 		count = 0;
+		seq_num++;
 	}
 }
 
 
 PROCESS_THREAD(unicast_receiver_process, ev, data)
 {
-  uip_ipaddr_t *ipaddr;
   static struct etimer template_timer;
   uint8_t *tmp_buffer;
   uint16_t i, position, element_id, loc_field_len = 0;
@@ -231,19 +232,7 @@ PROCESS_THREAD(unicast_receiver_process, ev, data)
   template_size <<= 8;
   template_size |= template_buf[1];
 
-  init_networking();
-  servreg();
-
-  //uip_ip6addr(&border_router,UIP_DS6_DEFAULT_PREFIX,0,0,0,0,0,0,0);
-//  servreg_hack_init();
-
-//  servreg_hack_register(SERVICE_ID, ipaddr);
-
-/*  simple_udp_register(&unicast_connection, UDP_PORT,
-                      NULL, UDP_PORT, receiver);
-
-  simple_udp_register(&border_conn, 40001,
-                      NULL, 40001, NULL);*/
+  init_system();
 
   while(1) {
     PROCESS_WAIT_EVENT();
@@ -253,7 +242,7 @@ PROCESS_THREAD(unicast_receiver_process, ev, data)
 		clock_delay(1000);
 		leds_off(LEDS_RED);
 
-		msg_send(&border_conn, template_buf, template_size, &border_router);
+		msg_send(BORDER_COMM, template_buf, template_size);
 
 		etimer_reset(&template_timer);
 	}

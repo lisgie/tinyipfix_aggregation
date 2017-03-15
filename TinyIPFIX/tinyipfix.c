@@ -66,7 +66,6 @@ uint8_t initialize_tinyipfix(uint8_t deg_aggr) {
 	template_size = calc_template_size(deg_aggr);
 	template_buf = (uint8_t*)malloc(template_size*sizeof(uint8_t));
 
-	printf("###0x%x, ",template_size);
 	if(build_template(deg_aggr) == -1) {
 		return -1;
 	}

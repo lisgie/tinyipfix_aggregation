@@ -12,6 +12,8 @@ TINYIPFIX_DIR = ../TinyIPFIX
 
 include $(HW_MODULE_DIR)/Makefile.hw_module
 include $(TINYIPFIX_DIR)/Makefile.tinyipfix
+PROJECT_SOURCEFILES += comm.c
+
 
 CONTIKI_WITH_IPV6 = 1
 include $(CONTIKI)/Makefile.include
