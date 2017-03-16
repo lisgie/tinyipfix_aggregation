@@ -11,6 +11,9 @@ uint8_t *aggr_data_buf;
 uint16_t aggr_field_len;
 uint16_t payload_extr_pos;
 
+uint32_t max(uint32_t a, uint32_t b) { return a > b ? a : b; }
+uint32_t min(uint32_t a, uint32_t b) { return a < b ? a : b; }
+
 uint8_t *get_aggr_template() {
 	uint8_t i;
 	uint16_t position, end_of_block;
@@ -51,65 +54,60 @@ uint8_t *get_aggr_template() {
 	memcpy(aggr_template_buf+MSG_HEADER_SIZE+SET_HEADER_SIZE,get_template()+position, end_of_block-position);
 	memcpy(aggr_template_buf, get_template(), MSG_HEADER_SIZE+SET_HEADER_SIZE);
 
-	//template_buf[] stores length
+	//length
 	aggr_template_buf[1] = MSG_HEADER_SIZE+SET_HEADER_SIZE+(end_of_block-position);
-	//length field of the set header
-	aggr_template_buf[MSG_HEADER_SIZE+SET_HEADER_SIZE-1] = 0x01;
+	//length field of the set header, we only have one aggregated value
+	aggr_template_buf[MSG_HEADER_SIZE+SET_HEADER_SIZE-1] = NUMBER_OF_AGGR_FIELDS;
 
 	return aggr_template_buf;
 }
 
 void calc_aggr_payload(uint8_t* data,uint16_t datalen) {
 
-	/*struct tinyipfix_packet* header_and_payload;
-		uint8_t i, tmp_8;
-		uint32_t converted = 0;
-		uint32_t tmp;
+	struct tinyipfix_packet* header_and_payload;
+	static uint8_t aggr_count = 0;
+	static uint16_t seq_num = 0;
+	static uint32_t data_aggr_state = 0;
+	//Using 0 as start value doesn't work for minimizing function
+	static uint32_t data_aggr_state_min = 0xffff;
+	uint8_t i;
+	uint32_t converted = 0;
+	uint32_t tmp;
 
-		header_and_payload = split_packet(data);
-		count++;
+	printf("*");
+	header_and_payload = split_packet(data);
+	aggr_count++;
 
-		leds_on(LEDS_RED);
-		clock_delay(1000);
-		leds_off(LEDS_RED);
+	//need to extract multiple bytes and put it in one variable
+	for(i = 0; i < aggr_field_len; i++) {
+		tmp = header_and_payload->payload[payload_extr_pos+i];
+		tmp <<= (8*(aggr_field_len-1-i));
+		converted |= tmp;
+		printf("#0x%x#, ", converted);
+	}
 
-		//check with SWITCH_ENDIAN from tinyipfix code
-		for(i = 0; i < target_field_len; i++) {
-			tmp = header_and_payload->payload[extraction_within_payload+i];
-			tmp <<= (8*(target_field_len-1-i));
-			converted |= tmp;
+	//see the meaning of the constants in aggr.h
+	if(AGGR_FUNC == 0) {
+		data_aggr_state += converted;
+	} else if(AGGR_FUNC == 1) {
+		data_aggr_state = max(data_aggr_state, converted);
+	} else if(AGGR_FUNC == 2) {
+		data_aggr_state_min = min(data_aggr_state_min, converted);
+		data_aggr_state = data_aggr_state_min;
+	}
+	if(aggr_count == DEGREE_OF_AGGREGATION) {
+		if(AGGR_FUNC == 0)
+			data_aggr_state /= DEGREE_OF_AGGREGATION;
+		build_msg_header(aggr_data_buf,DATA_SET_ID,MSG_HEADER_SIZE+aggr_field_len,seq_num);
+
+		//write the data back to the buffer
+		for(i = 0; i < aggr_field_len; i++) {
+			aggr_data_buf[MSG_HEADER_SIZE+i] = (data_aggr_state >> (8*(aggr_field_len-1-i)));
 		}
-
-		if(AGGR_FUNC == 0) {
-			//AVG
-			data_aggr_state += converted;
-		} else if(AGGR_FUNC == 1) {
-			//MAX
-			data_aggr_state = max(data_aggr_state, converted);
-
-		} else if(AGGR_FUNC == 2) {
-			//MIN
-			data_aggr_state = min(data_aggr_state, converted);
-		}
-
-		if(count == DEGREE_OF_DATA_AGGREGATION) {
-			leds_on(LEDS_YELLOW);
-			clock_delay(1000);
-			leds_off(LEDS_YELLOW);
-			if(AGGR_FUNC == 0)
-				data_aggr_state /= DEGREE_OF_DATA_AGGREGATION;
-			//memcpy(buf,header_and_payload->header,MSG_HEADER_SIZE);
-			build_msg_header(buf,DATA_SET_ID,MSG_HEADER_SIZE+target_field_len,seq_num);
-			//buf[1] = MSG_HEADER_SIZE+target_field_len;
-
-			for(i = 0; i < target_field_len; i++) {
-				tmp_8 = (converted >> (8*(target_field_len-1-i)));
-				buf[MSG_HEADER_SIZE+i] = tmp_8;
-			}
-
-			msg_send(BORDER_COMM,buf,buf[1]);
-			data_aggr_state = 0;
-			count = 0;
-			seq_num++;
-		}*/
+		msg_send(BORDER_COMM,aggr_data_buf,aggr_data_buf[1]);
+		data_aggr_state = 0;
+		data_aggr_state_min = 0xffff;
+		aggr_count = 0;
+		seq_num++;
+	}
 }

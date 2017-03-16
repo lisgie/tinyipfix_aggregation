@@ -35,6 +35,13 @@ uint16_t data_size;
 //Defines field ID, length, enterprise num and function pointer
 struct template_rec *sensor;
 
+uint8_t extr_len_from_header(uint8_t first, uint8_t second) {
+	uint16_t template_size = (first & 0x3);
+	template_size <<= 8;
+	template_size |= second;
+	return template_size;
+}
+
 struct tinyipfix_packet *split_packet(const uint8_t* data) {
 
 	uint8_t i;

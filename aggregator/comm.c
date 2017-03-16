@@ -61,11 +61,10 @@ int msg_send(int comm_mode, const void *data, uint16_t datalen) {
 
 	uint8_t i;
 
-	printf("\n#\n");
-	  	  for(i = 0; i < datalen; i++) {
-	  		  printf("0x%x, ", ((uint8_t*)data)[i]);
-	  	  }
-	  	  printf("\n#\n");
+	printf("\n");
+	for(i = 0; i < datalen; i++) {
+		printf("0x%x, ", ((uint8_t*)data)[i]);
+	}
 
 	if(comm_mode == BORDER_COMM)
 		return simple_udp_sendto(&border_conn,data,datalen,&border_router);
