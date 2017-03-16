@@ -25,7 +25,6 @@ uint8_t is_initialized = 0;
 
 struct tinyipfix_packet packet;
 
-
 uint8_t *template_buf;
 uint8_t *data_buf;
 
@@ -35,24 +34,20 @@ uint16_t data_size;
 //Defines field ID, length, enterprise num and function pointer
 struct template_rec *sensor;
 
-uint8_t extr_len_from_header(uint8_t first, uint8_t second) {
-	uint16_t template_size = (first & 0x3);
+uint8_t extr_len_from_header(uint8_t *tinyipfix_msg) {
+	uint16_t template_size = (tinyipfix_msg[0] & 0x3);
 	template_size <<= 8;
-	template_size |= second;
+	template_size |= tinyipfix_msg[1];
 	return template_size;
 }
 
 struct tinyipfix_packet *split_packet(const uint8_t* data) {
-
 	uint8_t i;
-
 	for(i = 0; i < MSG_HEADER_SIZE; i++) {
 		packet.header[i] = data[i];
 	}
-
 	//compiler warning here, maybe better to copy because data is const
 	packet.payload = data+MSG_HEADER_SIZE;
-
 	return &packet;
 }
 

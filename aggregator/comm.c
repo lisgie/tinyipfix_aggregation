@@ -7,8 +7,6 @@ uip_ipaddr_t border_router;
 static struct simple_udp_connection unicast_connection;
 static struct simple_udp_connection border_conn;
 
-uint8_t j = 0;
-
 static void receiver(struct simple_udp_connection *c,
          const uip_ipaddr_t *sender_addr,
          uint16_t sender_port,
@@ -32,8 +30,6 @@ void init_system() {
 	simple_udp_register(&border_conn, UDP_PORT_SERV_BORDER,
 	                      NULL, UDP_PORT_SERV_BORDER, NULL);
 
-	//get aggregation mode here
-
 	servreg_hack_init();
 	servreg_hack_register(SERVICE_ID, &self_addr);
 }
@@ -53,18 +49,9 @@ static void receiver(struct simple_udp_connection *c,
 		return;
 
 	calc_aggr_payload(data, datalen);
-
-	return;
 }
 
 int msg_send(int comm_mode, const void *data, uint16_t datalen) {
-
-	uint8_t i;
-
-	printf("\n");
-	for(i = 0; i < datalen; i++) {
-		printf("0x%x, ", ((uint8_t*)data)[i]);
-	}
 
 	if(comm_mode == BORDER_COMM)
 		return simple_udp_sendto(&border_conn,data,datalen,&border_router);

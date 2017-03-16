@@ -104,7 +104,7 @@ void calc_aggr_payload(uint8_t* data,uint16_t datalen) {
 		for(i = 0; i < aggr_field_len; i++) {
 			aggr_data_buf[MSG_HEADER_SIZE+i] = (data_aggr_state >> (8*(aggr_field_len-1-i)));
 		}
-		msg_send(BORDER_COMM,aggr_data_buf,aggr_data_buf[1]);
+		msg_send(BORDER_COMM,aggr_data_buf,extr_len_from_header(aggr_data_buf));
 		data_aggr_state = 0;
 		data_aggr_state_min = 0xffff;
 		aggr_count = 0;
