@@ -9,7 +9,7 @@
 #include "aggregator.h"
 #include "comm.h"
 
-#define TEMPLATE_INTERVAL 37
+#define TEMPLATE_INTERVAL 10
 
 uint8_t *template_buf;
 
@@ -18,20 +18,20 @@ AUTOSTART_PROCESSES(&unicast_receiver_process);
 
 PROCESS_THREAD(unicast_receiver_process, ev, data)
 {
-  static struct etimer template_timer;
-  PROCESS_BEGIN();
-  etimer_set(&template_timer, CLOCK_SECOND*TEMPLATE_INTERVAL);
-  template_buf = get_aggr_template();
+	uint8_t i;
+	static struct etimer template_timer;
+	PROCESS_BEGIN();
+	etimer_set(&template_timer, CLOCK_SECOND*TEMPLATE_INTERVAL);
+	template_buf = get_aggr_template();
 
-  init_system();
+	init_system();
 
-  while(1) {
-    PROCESS_WAIT_EVENT();
-    if (etimer_expired (&template_timer)) {
-    	clock_delay(random_rand()%4);
-		msg_send(BORDER_COMM, template_buf, extr_len_from_header(template_buf[0]));
-		etimer_reset(&template_timer);
+	while(1) {
+		PROCESS_WAIT_EVENT();
+		if (etimer_expired (&template_timer)) {
+			msg_send(BORDER_COMM, template_buf, extr_len_from_header(template_buf));
+			etimer_reset(&template_timer);
+		}
 	}
-  }
-  PROCESS_END();
+	PROCESS_END();
 }
