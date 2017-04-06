@@ -33,7 +33,6 @@
 #undef PROCESS_CONF_NO_PROCESS_NAMES
 #define PROCESS_CONF_NO_PROCESS_NAMES 1
 
-
 #ifndef WITH_NON_STORING
 #define WITH_NON_STORING 0 /* Set this to run with non-storing mode */
 #endif /* WITH_NON_STORING */

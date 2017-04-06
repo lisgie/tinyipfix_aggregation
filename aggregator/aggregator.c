@@ -3,20 +3,20 @@
 #include "sys/ctimer.h"
 #include "sys/etimer.h"
 
-#include "net/rpl/rpl.h"
+//#include "net/rpl/rpl.h"
 #include "../TinyIPFIX/tinyipfix.h"
 
 #include "aggregator.h"
 #include "comm.h"
 
-#define TEMPLATE_INTERVAL 10
+#define TEMPLATE_INTERVAL 51
 
 uint8_t *template_buf;
 
-PROCESS(unicast_receiver_process, "Unicast receiver example process");
-AUTOSTART_PROCESSES(&unicast_receiver_process);
+PROCESS(aggregator_process, "Aggregator process");
+AUTOSTART_PROCESSES(&aggregator_process);
 
-PROCESS_THREAD(unicast_receiver_process, ev, data)
+PROCESS_THREAD(aggregator_process, ev, data)
 {
 	uint8_t i;
 	static struct etimer template_timer;

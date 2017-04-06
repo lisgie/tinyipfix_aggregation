@@ -6,7 +6,7 @@ APPS=servreg-hack
 MSG_AGGR=0
 DATA_AGGR=1
 
-AGGR_MODE=$(DATA_AGGR)
+AGGR_MODE=$(MSG_AGGR)
 
 ifeq ($(AGGR_MODE),$(MSG_AGGR))
 PROJECT_SOURCEFILES += msg_aggr.c

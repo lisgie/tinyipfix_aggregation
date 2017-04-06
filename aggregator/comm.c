@@ -30,7 +30,7 @@ void init_system() {
 	simple_udp_register(&border_conn, UDP_PORT_SERV_BORDER,
 	                      NULL, UDP_PORT_SERV_BORDER, NULL);
 
-	servreg_hack_init();
+	//servreg_hack_init();
 	servreg_hack_register(SERVICE_ID, &self_addr);
 }
 

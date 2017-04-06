@@ -13,13 +13,13 @@
 //---
 
 //hardcoded for testing
-#define DEGREE_OF_AGGREGATION 3
+#define DEGREE_OF_AGGREGATION 2
 
 //is this even needed?
 #define MSG_AGGREGATION 0
 #define DATA_AGGREGATION 1
 
 uint8_t *get_aggr_template();
-void calc_aggr_payload(uint8_t*,uint16_t);
+void calc_aggr_payload(uint8_t* data, uint16_t datalen);
 
 #endif /* AGGR_H_ */

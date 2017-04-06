@@ -8,6 +8,7 @@ uint8_t *get_aggr_template() {
 	initialize_tinyipfix(DEGREE_OF_AGGREGATION);
 	memcpy(aggr_template_buf, get_template(), MAX_MSG_SIZE);
 
+
 	return aggr_template_buf;
 }
 
